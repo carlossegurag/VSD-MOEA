@@ -14,8 +14,9 @@ Coder:
 - Joel Chacón Castillo
 
 *COMPILATION*
-The current version only works with linux enviroments. T
-To compile in the directory "Code" run the following: 
+The current version only works with linux enviroments.
+
+In the directory "Code" run the following: 
 
 ./make
 
