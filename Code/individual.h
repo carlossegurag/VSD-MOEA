@@ -60,11 +60,6 @@ void CIndividual::obj_eval()
 	if(!strcmp("UF9", strTestInstance))  CEC09_F9(y_obj, x_var);
 	if(!strcmp("UF10", strTestInstance)) CEC09_F10(y_obj, x_var);
 
-
-	if(!strcmp("R2_DTLZ2_M5", strTestInstance))	CEC09_R2_DTLZ2_M5(y_obj, x_var);	
-	if(!strcmp("R2_DTLZ3_M5", strTestInstance)) CEC09_R2_DTLZ3_M5(y_obj, x_var);
-	if(!strcmp("WFG1_M5", strTestInstance))     CEC09_WFG1_M5(y_obj, x_var);
-
 	//WFG test instances....
 	if(!strcmp("WFG1", strTestInstance))  wfg1(y_obj, x_var);
 	if(!strcmp("WFG2", strTestInstance))  wfg2(y_obj, x_var);

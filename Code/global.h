@@ -24,7 +24,6 @@ using namespace std;
 int     nvar=10,  nobj=2;                    //  the number of variables and objectives
 int pops = 100; //population size
 
-double  lowBound = 0,   uppBound = 1;   //  lower and upper bounds of variables
 double  vlowBound[2000] ,   vuppBound[2000];   //  lower and upper bounds of variables
 double nadir[2000], ideal[2000];
 

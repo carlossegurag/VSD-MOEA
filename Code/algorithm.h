@@ -12,8 +12,6 @@
 #include <iomanip>
 #include <cfloat>
 #include "global.h"
-#include "recomb.h"
-#include "common.h"
 #include "individual.h"
 
 class MOEA
@@ -45,12 +43,10 @@ public:
         void back_select_first_survivors(vector<CIndividual*> &survivors, vector<CIndividual*> &candidates);
 	void update_domianted_information(vector<CIndividual*> &survivors, vector<CIndividual*> &candidates, vector<CIndividual*> &penalized);
         void update_population(vector<CIndividual*> &survivors, vector<CIndividual> &population);
-	void update_ideal_vector(CIndividual &ind);
-
 	void fast_non_dominated_sorting(vector <CIndividual*> &survivors);
-
+        void real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &child1, CIndividual &child2);
+        void realmutation(CIndividual &ind);
 	double distance( vector<double> &a, vector<double> &b);
-
 	double distance_improvement( vector<double> &a, vector<double> &b);
 	vector <CIndividual> population;
 	vector<CIndividual> child_pop;	// memory solutions
@@ -60,7 +56,6 @@ public:
 //
 //	// algorithm parameters
 	long long int nfes;
-//	int     nfes, max_nfes;          //  the number of function evluations
 
 };
 
@@ -79,7 +74,6 @@ double MOEA::distance( vector<double> &a, vector<double> &b)
    for(int i = 0; i < a.size(); i++)
 	{
 	   double factor = (a[i]-b[i])/(vuppBound[i] - vlowBound[i]);
-	//	dist = min(dist, factor*factor);
 	   dist += factor*factor;
 	}
    return sqrt(dist);
@@ -92,11 +86,8 @@ double MOEA::distance_improvement( vector<double> &a, vector<double> &b)
 	{
 	   double factor = max(0.0, a[i]-b[i]);
 	   dist += factor*factor;
-//	   maxd = max(maxd, max( b[i]-a[i], 0.0));
 	}
-  //      if(dist == 0.0) return -maxd; //in case that this indicator is zero, this mean that it is a dominated individual...
    return dist;
-   return sqrt(dist);
 }
 void MOEA::init_population()
 {
@@ -106,16 +97,12 @@ void MOEA::init_population()
 		CIndividual indiv1, indiv2;
 		// Randomize and evaluate solution
 		indiv1.rnd_init();
-		indiv1.obj_eval();
 
-		update_ideal_vector(indiv1);
 		// Save in the population
 		population.push_back(indiv1);
 
 		indiv2.rnd_init();
 		indiv2.obj_eval();
-
-		update_ideal_vector(indiv2);
 
 		child_pop.push_back(indiv2);
 		nfes++;
@@ -196,10 +183,6 @@ void MOEA::fast_non_dominated_sorting(vector <CIndividual*> &survivors)
 	currentfront = nextFront;
    }
 }
-void MOEA::update_ideal_vector(CIndividual &ind)
-{
-   for(int m = 0; m < nobj; m++) ideal[m] = min(ideal[m], ind.y_obj[m]);
-}
 void MOEA::update_population(vector<CIndividual*> &survivors, vector<CIndividual> &population)
 {
 	vector<CIndividual> pool;
@@ -210,8 +193,6 @@ void MOEA::update_domianted_information(vector<CIndividual*> &survivors, vector<
 {
 
      bool firstfrontcurrent = false; 
-//   while( !firstfrontcurrent)
-   {
      for(int i = 0; i < candidates.size(); i++) if(candidates[i]->times_dominated==0) firstfrontcurrent = true; //check if there exists at least one candidate in the lowest current front
      
      if( !firstfrontcurrent) //this indicates that there is not able a current in the lowest front, so the next front is to be considered
@@ -232,7 +213,6 @@ void MOEA::update_domianted_information(vector<CIndividual*> &survivors, vector<
 	  penalize_nearest(candidates, penalized);//penalize the nearest individuals.. 
 	  compute_distances_objective(candidates, survivors);
 	}
-    }
 }
 void MOEA::back_select_first_survivors(vector<CIndividual*> &survivors, vector<CIndividual*> &candidates)
 {
@@ -282,7 +262,6 @@ void MOEA::select_first_survivors(vector<CIndividual*> &survivors, vector<CIndiv
 		double bestvector = DBL_MAX;
 		for(int i = 0; i <  candidates.size(); i++)
 		 {	
-		//	if(candidates[i]->times_dominated != 0) continue; //just consider the first front
 		        double s = 0.0;	
 		        double maxv =  -DBL_MAX;
 		        for(int k = 0; k < nobj; k++)
@@ -296,12 +275,9 @@ void MOEA::select_first_survivors(vector<CIndividual*> &survivors, vector<CIndiv
 		        if(bestvector > maxv)
 		        { indxmaxim = i; bestvector = maxv;}
 		  }
-	//	if(indxmaxim != -1)
-		{
 		   survivors.push_back( candidates[indxmaxim]);
 		   iter_swap(candidates.begin()+indxmaxim, candidates.end()-1);
 		   candidates.pop_back();
-		}
 	}
 }
 //get the rank of each individual...
@@ -344,15 +320,13 @@ void MOEA::recombination(vector<CIndividual> &child_pop)
 	
    for(int i = 0; i < child_pop.size(); i+=2)
     {
-       int indexa = i;// int(rnd_uni(&rnd_uni_init)*pops);
-       int indexb = i+1;//int(rnd_uni(&rnd_uni_init)*pops);	
+       int indexa = i;
+       int indexb = i+1;	
        real_sbx_xoverA( child_pop2[indexa], child_pop2[indexb], child_pop[i], child_pop[i+1]);//the crossover probability and index distribution eta are configured in the global.h file
        realmutation(child_pop[i]); //the index distribution (eta) and  mutation probability are configured in the global.h file
        realmutation(child_pop[i+1]);
        child_pop[i].obj_eval();
        child_pop[i+1].obj_eval();
-       update_ideal_vector(child_pop[i]);
-       update_ideal_vector(child_pop[i+1]);
     }
 }
 void MOEA::binary_tournament_selection(vector<CIndividual > &population, vector<CIndividual> &child_pop)
@@ -479,9 +453,7 @@ void MOEA::exec_emo(int run)
 	init_population(); //Initialize individuals...
 
 	sprintf(filename1,"%s/POS/POS_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lldDF50P",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
-	//sprintf(filename1,"%s/POS/mindist/POS_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lld",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
 	sprintf(filename2,"%s/POF/POF_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lld_DF50P",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
-	//sprintf(filename2,"%s/POF/mindist/POF_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lld",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
 	save_front(filename2); //save the objective space information
 	save_pos(filename1); //save the decision variable space information
         long long nfes1 = nfes, nfes2 = nfes;
@@ -499,7 +471,6 @@ void MOEA::exec_emo(int run)
 	      countnfes -= 0.001*max_nfes;
               save_front(filename2); //save the objective space information
 	      save_pos(filename1); //save the decision variable space information
-	    //  cout << "nfes... "<< nfes <<endl;
 	    }
 	}
 	save_pos(filename1); //save the decision variable space information
@@ -510,14 +481,11 @@ void MOEA::save_front(char saveFilename[1024])
 {
 
     std::fstream fout;
-	//fout.open(saveFilename,std::ios::out);
 	fout.open(saveFilename,fstream::app|fstream::out );
 	for(int n=0; n<pops; n++)
 	{
 		for(int k=0;k<nobj;k++)
 			fout<<population[n].y_obj[k]<<"  ";
-//	for(int k=0;k<nobj;k++)
-//			fout<<child_pop[n].y_obj[k]<<"  ";
 		fout<<"\n";
 	}
 	fout.close();
@@ -526,20 +494,151 @@ void MOEA::save_front(char saveFilename[1024])
 void MOEA::save_pos(char saveFilename[1024])
 {
     std::fstream fout;
-	//fout.open(saveFilename,std::ios::out);
 	fout.open(saveFilename, fstream::app|fstream::out);
 	for(int n=0; n<pops; n++)
 	{
 		for(int k=0;k<nvar;k++)
 			fout<<population[n].x_var[k] << "  ";
-			//fout<<population[n].indiv.x_var[k]<< fixed << setprecision(30) << "  ";
-//	  for(int k=0;k<nvar;k++)
-//			fout<<child_pop[n].x_var[k]<<"  ";
 		fout<<"\n";
 	}
 	fout.close();
 }
+/* Routine for real polynomial mutation of an T */
+void MOEA::realmutation(CIndividual &ind)
+{
+    double rnd, delta1, delta2, mut_pow, deltaq;
+    double y, yl, yu, val, xy;
+	double eta_m = etam;
+
+	int    id_rnd = int(rnd_uni(&rnd_uni_init)*nvar);
+
+    for (int j=0; j<nvar; j++)
+    {
+        if (rnd_uni(&rnd_uni_init)<= realm)
+        {
+            y  = ind.x_var[j];
+            yl = vlowBound[j];
+            yu = vuppBound[j];
+            delta1 = (y-yl)/(yu-yl);
+            delta2 = (yu-y)/(yu-yl);
+            rnd = rnd_uni(&rnd_uni_init);
+            mut_pow = 1.0/(eta_m+1.0);
+            if (rnd <= 0.5)
+            {
+                xy = 1.0-delta1;
+                val = 2.0*rnd+(1.0-2.0*rnd)*(pow(xy,(eta_m+1.0)));
+                deltaq =  pow(val,mut_pow) - 1.0;
+            }
+            else
+            {
+                xy = 1.0-delta2;
+                val = 2.0*(1.0-rnd)+2.0*(rnd-0.5)*(pow(xy,(eta_m+1.0)));
+                deltaq = 1.0 - (pow(val,mut_pow));
+            }
+            y = y + deltaq*(yu-yl);
+            if (y<yl)
+                y = yl;
+            if (y>yu)
+                y = yu;
+            ind.x_var[j] = y;
+        }
+    }
+    return;
+}
 
 
+/* Routine for real variable SBX crossover */
+void MOEA::real_sbx_xoverA(CIndividual &parent1, CIndividual &parent2, CIndividual &child1, CIndividual &child2)
+{
+    double rand;
+    double y1, y2, yl, yu;
+    double c1, c2;
+    double alpha, beta, betaq;
+	double eta_c = etax;
+    if (rnd_uni(&rnd_uni_init) <= realx) 
+    {
+        for (int i=0; i<nvar; i++)
+        {
+            if (rnd_uni(&rnd_uni_init)<=0.5 )
+            {
+                if (fabs(parent1.x_var[i]-parent2.x_var[i]) > EPS2)
+                {
+                    if (parent1.x_var[i] < parent2.x_var[i])
+                    {
+                        y1 = parent1.x_var[i];
+                        y2 = parent2.x_var[i];
+                    }
+                    else
+                    {
+                        y1 = parent2.x_var[i];
+                        y2 = parent1.x_var[i];
+                    }
+                    yl = vlowBound[i];
+                    yu = vuppBound[i];
+                    rand = rnd_uni(&rnd_uni_init);
+                    beta = 1.0 + (2.0*(y1-yl)/(y2-y1));
+                    alpha = 2.0 - pow(beta,-(eta_c+1.0));
+                    if (rand <= (1.0/alpha))
+                    {
+                        betaq = pow ((rand*alpha),(1.0/(eta_c+1.0)));
+                    }
+                    else
+                    {
+                        betaq = pow ((1.0/(2.0 - rand*alpha)),(1.0/(eta_c+1.0)));
+                    }
+                    c1 = 0.5*((y1+y2)-betaq*(y2-y1));
+                    beta = 1.0 + (2.0*(yu-y2)/(y2-y1));
+                    alpha = 2.0 - pow(beta,-(eta_c+1.0));
+                    if (rand <= (1.0/alpha))
+                    {
+                        betaq = pow ((rand*alpha),(1.0/(eta_c+1.0)));
+                    }
+                    else
+                    {
+                        betaq = pow ((1.0/(2.0 - rand*alpha)),(1.0/(eta_c+1.0)));
+                    }
+                    c2 = 0.5*((y1+y2)+betaq*(y2-y1));
+                    if (c1<yl)
+                        c1=yl;
+                    if (c2<yl)
+                        c2=yl;
+                    if (c1>yu)
+                        c1=yu;
+                    if (c2>yu)
+                        c2=yu;
+                    if (rnd_uni(&rnd_uni_init)<=0.5)
+                    {
+                        child1.x_var[i] = c2;
+                        child2.x_var[i] = c1;
+                    }
+                    else
+                    {
+                        child1.x_var[i] = c1;
+                        child2.x_var[i] = c2;
+                    }
+                }
+                else
+                {
+                    child1.x_var[i] = parent1.x_var[i];
+                    child2.x_var[i] = parent2.x_var[i];
+                }
+            }
+            else
+            {
+                child1.x_var[i] = parent1.x_var[i];
+                child2.x_var[i] = parent2.x_var[i];
+            }
+        }
+    }
+    else
+    {
+        for (int i=0; i<nvar; i++)
+        {
+            child1.x_var[i] = parent1.x_var[i];
+            child2.x_var[i] = parent2.x_var[i];
+        }
+    }
+    return;
+}
 
 #endif

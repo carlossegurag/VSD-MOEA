@@ -27,10 +27,6 @@ namespace CEC09
 	void UF8(double *x, double *f, const unsigned int nx);
 	void UF9(double *x, double *f, const unsigned int nx);
 	void UF10(double *x, double *f, const unsigned int nx);
-
-	void R2_DTLZ2_M5(double *x, double *f, const unsigned int nx, const unsigned int n_obj);
-	void R2_DTLZ3_M5(double *x, double *f, const unsigned int nx, const unsigned int n_obj);
-	void WFG1_M5( double *z, double *f, const unsigned int nx,  const unsigned int M);
 }		
 #endif //AZ_CEC09_H
 

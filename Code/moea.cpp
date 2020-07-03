@@ -127,28 +127,9 @@ int main(int argc, char *argv[])
 
 
 	InitializeBounds(nvar, strTestInstance);
-
-	clock_t start, temp, finish;
-	double  duration, last = 0;
-	start = clock();
-
-	std::fstream fout;
-	char logFilename[1024];
-	sprintf(logFilename, "%s/LOG/LOG_MOEAD_%s.dat", currentPATH, strTestInstance);
-	fout.open(logFilename,std::ios::out);
-	fout<<"Inst: "<<strTestInstance<<endl;
-	fout<<"Time: \n\n";
 	MOEA MOEAD;
 	MOEAD.exec_emo(run);
-	temp = clock();
-	duration = (double)(temp - start) / CLOCKS_PER_SEC;
-	last = duration;
 
-	fout<<"\n\n";
-
-	finish = clock();
-	duration = (double)(finish - start) / CLOCKS_PER_SEC;
-	fout.close();
 	return 0;
 
 }
