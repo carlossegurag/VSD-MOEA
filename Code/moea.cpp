@@ -72,6 +72,12 @@ void PrintHelp()
 }
 void SetConfiguration(int argc, char*argv[])
 {
+  model_id["LINEAL"]=LINEAL;
+  model_id["GEOMETRIC1"]=GEOMETRIC1;
+  model_id["GEOMETRIC2"]=GEOMETRIC2;
+  model_id["LOGARITHMIC"]=LOGARITHMIC;
+  model_id["EXPONENTIAL"]=EXPONENTIAL;
+  for(auto idx:model_id) id_model[idx.second]=idx.first;
 	for(int i = 1; i < argc ; i++)
     	{
 		string Terminal(argv[i]);
@@ -79,6 +85,8 @@ void SetConfiguration(int argc, char*argv[])
 			strcpy(strTestInstance, argv[++i]);
 		else if(Terminal == "--Seed")
 			run = atoi(argv[++i]);
+		else if(Terminal == "--Model")
+			Type_Model = model_id[string(argv[++i])];
 		else if(Terminal == "--Px")
 			realx = atof(argv[++i]);
 		else if(Terminal == "--Pm")
@@ -99,6 +107,8 @@ void SetConfiguration(int argc, char*argv[])
 			param_k = atoi(argv[++i]);
 		else if(Terminal == "--Dist_factor")
 			Initial_lowest_distance_factor= atof(argv[++i]);
+		else if(Terminal == "--Last_time_diver")
+			Final_time_diversity_promotion = atof(argv[++i]);
 		else if(Terminal == "--help" || Terminal == "--h")
 			PrintHelp();
 		else

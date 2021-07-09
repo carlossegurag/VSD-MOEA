@@ -25,7 +25,7 @@ double rnd_uni(long *idum);
 //the random generator in [0,1)
 double rnd_uni(long *idum)
 {
-
+  return (double)rand() / (double)((unsigned)RAND_MAX + 1) ;
 //  return (double)rand()/RAND_MAX;
   long j;
   long k;

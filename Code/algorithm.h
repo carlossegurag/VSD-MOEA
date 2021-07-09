@@ -11,6 +11,7 @@
 #include <queue>
 #include <iomanip>
 #include <cfloat>
+#include <map>
 #include "global.h"
 #include "individual.h"
 
@@ -26,8 +27,8 @@ public:
 	void evol_population();                                      
 	void exec_emo(int run);
 
-	void save_front(char savefilename[1024]);       // save the pareto front into files
-	void save_pos(char savefilename[1024]);
+	void save_front(char savefilename[1024], bool overwrite=false);       // save the pareto front into files
+	void save_pos(char savefilename[1024], bool overwrite=false);
 
         void penalize_nearest(vector<CIndividual *> &candidates, vector<CIndividual *> &penalized);
         void select_farthest_penalized(vector<CIndividual *> &candidates, vector<CIndividual *> &penalized);
@@ -94,17 +95,16 @@ void MOEA::init_population()
 	
     for(int i=0; i<pops; i++)
 	{
-		CIndividual indiv1, indiv2;
+		CIndividual indiv1;
 		// Randomize and evaluate solution
 		indiv1.rnd_init();
 
 		// Save in the population
+		indiv1.rnd_init();
+		indiv1.obj_eval();
 		population.push_back(indiv1);
 
-		indiv2.rnd_init();
-		indiv2.obj_eval();
-
-		child_pop.push_back(indiv2);
+		child_pop.push_back(indiv1);
 		nfes++;
 	}
 }
@@ -216,8 +216,11 @@ void MOEA::update_domianted_information(vector<CIndividual*> &survivors, vector<
 }
 void MOEA::back_select_first_survivors(vector<CIndividual*> &survivors, vector<CIndividual*> &candidates)
 {
+	vector<int> idx(nobj);
+	for(int i = 0; i < nobj; i++)idx[i]=i;
+	random_shuffle(idx.begin(), idx.end());
 	///Select the best improvement distance candidates....
-	for(int m = 0; m < nobj; m++)
+	for(auto m:idx)
 	{
 		int indxmaxim = -1;
 		double bestvector = DBL_MAX;
@@ -255,8 +258,11 @@ void MOEA::back_select_first_survivors(vector<CIndividual*> &survivors, vector<C
 }
 void MOEA::select_first_survivors(vector<CIndividual*> &survivors, vector<CIndividual*> &candidates)
 {
+	vector<int> idx(nobj);
+	for(int i = 0; i < nobj; i++)idx[i]=i;
+	random_shuffle(idx.begin(), idx.end());
 	///Select the best improvement distance candidates....
-	for(int m = 0; m < nobj; m++)
+	for(auto m:idx)
 	{
 		int indxmaxim = 0;
 		double bestvector = DBL_MAX;
@@ -304,8 +310,36 @@ void MOEA::computing_dominate_information(vector <CIndividual*> &pool)
 //updates the lowest distance factor of the diversity explicitly promoted
 void MOEA::update_diversity_factor()
 {
+
 	double ratio = ((double) nfes)/max_nfes;
-	lowestDistanceFactor = Initial_lowest_distance_factor - Initial_lowest_distance_factor*(ratio/0.5);
+	if( Type_Model == LINEAL)
+	{
+	   lowestDistanceFactor = Initial_lowest_distance_factor - Initial_lowest_distance_factor*(ratio/Final_time_diversity_promotion);
+	   if(ratio > Final_time_diversity_promotion) lowestDistanceFactor = 0.0;
+	}
+        else if( Type_Model == GEOMETRIC1)
+	{
+	   double alpha = Final_time_diversity_promotion;
+	   lowestDistanceFactor = Initial_lowest_distance_factor*pow(alpha, ratio);
+	}
+	else if( Type_Model == GEOMETRIC2)
+	{
+	   double epsilon = 0.0001, alpha=0.9;
+	   lowestDistanceFactor = Initial_lowest_distance_factor*pow(exp(log(epsilon/Initial_lowest_distance_factor)/Final_time_diversity_promotion), ratio);
+	   if(ratio > Final_time_diversity_promotion) lowestDistanceFactor = 0.0;
+	}		
+	else if(Type_Model == EXPONENTIAL)
+	{
+	  double alpha=Final_time_diversity_promotion;
+	  lowestDistanceFactor = Initial_lowest_distance_factor*exp(-6.0*pow(ratio,alpha));
+	}
+	else if(Type_Model == LOGARITHMIC)
+	{
+	   double alpha = 0.05;
+	   lowestDistanceFactor = (Initial_lowest_distance_factor*alpha)/(log(1.0+ratio)/log(2.0));
+	   lowestDistanceFactor -=Final_time_diversity_promotion;
+	}
+	
 }
 void MOEA::reproduction(vector<CIndividual> &population, vector<CIndividual> &child_pop)
 {
@@ -433,7 +467,7 @@ void MOEA::penalize_nearest(vector<CIndividual *> &candidates, vector<CIndividua
 			penalized.push_back(candidates[i]);
 			for(int j = 0; j < candidates[i]->ptr_dominate.size(); j++)
 			{
-				candidates[i]->ptr_dominate[j]->times_dominated--; //decreasing the times in which survivors is dominated, this since penalized individuals are not considered..
+				candidates[i]->ptr_dominate[j]->times_dominated--; //decreasing the times in which a survivor is dominated, this since penalized individuals are not considered..
 			}
 			//remove the candidate with index "i"
 			iter_swap(candidates.begin()+i, candidates.end()-1);
@@ -446,16 +480,17 @@ void MOEA::exec_emo(int run)
        char filename1[5024];
        char filename2[5024];
 		seed = run;
-	seed = (seed + 23)%1377;
-	rnd_uni_init = -(long)seed;
+	srand(seed);
+//	seed = (seed + 23)%1377;
+//	rnd_uni_init = -(long)seed;
 
 	nfes      = 0;
 	init_population(); //Initialize individuals...
 
-	sprintf(filename1,"%s/POS/POS_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lldDF50P",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
-	sprintf(filename2,"%s/POF/POF_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d.dat_bounded_Di_%lf_nfes_%lld_DF50P",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes);
-	save_front(filename2); //save the objective space information
-	save_pos(filename1); //save the decision variable space information
+	sprintf(filename1,"%s/POS/POS_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d_Di_%lf_nfes_%lldDf_%lf_pc_%lf_pm_%lf_Model_%s",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes, Final_time_diversity_promotion, realx, realm, id_model[Type_Model].c_str());
+	sprintf(filename2,"%s/POF/POF_VSD-MOEA_%s_RUN_%d_seed_%d_nvar_%d_nobj_%d_Di_%lf_nfes_%lld_Df_%lf_pc_%lf_pm_%lf_Model_%s",currentPATH, strTestInstance,run, seed, nvar, nobj, Initial_lowest_distance_factor/sqrt(nvar), max_nfes, Final_time_diversity_promotion, realx, realm, id_model[Type_Model].c_str());
+	save_front(filename2, true); //save the objective space information
+	save_pos(filename1, true); //save the decision variable space information
         long long nfes1 = nfes, nfes2 = nfes;
         long long countnfes=0;
 	while(nfes < max_nfes )
@@ -466,9 +501,9 @@ void MOEA::exec_emo(int run)
 	    
 	    nfes2 = nfes;
 	   countnfes += (nfes2 - nfes1);
-	   if(  countnfes > 0.001*max_nfes  )
+	   if(  countnfes > 0.1*max_nfes  )
 	    {	
-	      countnfes -= 0.001*max_nfes;
+	      countnfes -= 0.1*max_nfes;
               save_front(filename2); //save the objective space information
 	      save_pos(filename1); //save the decision variable space information
 	    }
@@ -477,11 +512,13 @@ void MOEA::exec_emo(int run)
         save_front(filename2); //save the objective space information
 	population.clear();
 }
-void MOEA::save_front(char saveFilename[1024])
+void MOEA::save_front(char saveFilename[1024], bool overwrite)
 {
-
-    std::fstream fout;
-	fout.open(saveFilename,fstream::app|fstream::out );
+        std::fstream fout;
+	if(overwrite)
+	  fout.open(saveFilename);
+	else
+	  fout.open(saveFilename,fstream::app|fstream::out );
 	for(int n=0; n<pops; n++)
 	{
 		for(int k=0;k<nobj;k++)
@@ -491,9 +528,12 @@ void MOEA::save_front(char saveFilename[1024])
 	fout.close();
 }
 
-void MOEA::save_pos(char saveFilename[1024])
+void MOEA::save_pos(char saveFilename[1024], bool overwrite)
 {
-    std::fstream fout;
+        std::fstream fout;
+	if(overwrite)
+	fout.open(saveFilename);
+	else
 	fout.open(saveFilename, fstream::app|fstream::out);
 	for(int n=0; n<pops; n++)
 	{
