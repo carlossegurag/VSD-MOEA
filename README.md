@@ -31,6 +31,8 @@ For instance, in order to execute VSD-MOEA with DTLZ1 with the aim of generating
 
 ./VSD-MOEA --n 100 --nfes 25000000 --nvar 6 --Instance DTLZ1 --Path . --Dist_factor 0.4 --nobj 2 --Seed 1 
 
+The results of each run can be consulted in the directory "VSD-MOEA/Code/POF", note that those results refers to the ten fronts reported along all the execution and the last front is at the last lines of each file.
+
 ##########################################################
 This section has only been tested for linux enviroments  #
 ##########################################################
