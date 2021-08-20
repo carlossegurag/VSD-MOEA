@@ -50,7 +50,7 @@ the Decision Variable Scalability Analysis requires a different set of reference
  "INSTANCE_NOBJECTIVES_NVARIABLES.txt"
 
 For instance, the reference set for WFG1 with two objectives and 100 variables are defined in the file "Metrics/Optimals/WFG1_2_100.txt".
-Similarly, for the main parameterization "Comparison against State-of-the-art MOEAs for long runs" the reference set for WFG1 with two objectives and 100 variables are defined in the file "Metrics/Optimals/WFG1_2.txt"
+Similarly, for the main parameterization "Comparison against State-of-the-art MOEAs for long runs" the reference set for WFG1 with two objectives and 24 variables are defined in the file "Metrics/Optimals/WFG1_2.txt"
 
 For the computation of the HV values the binary "hv" located in the directory "Metrics" can be run in the following way (only for linux with x64):
 Given the files of the last front (which can be computed in a fast way and is indicated in the next section) the command to get the normalized HV value is:
